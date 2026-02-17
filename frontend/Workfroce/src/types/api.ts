@@ -1,0 +1,1 @@
+// TODO: Generic API Response Types

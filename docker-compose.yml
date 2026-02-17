@@ -1,0 +1,46 @@
+services:
+  # 1. SQL Server 2022 (Database)
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: workforce-db
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql_data:/var/opt/mssql
+
+  # 2. Backend API (ASP.NET 10)
+  api:
+    build:
+      # point context to the project folder to ensure Workforce.csproj is available
+      context: ./backend/Workforce
+      dockerfile: Dockerfile
+    container_name: workforce-api
+    ports:
+      - "5001:8080"  # Localhost:5001 -> Container:8080
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=db;Database=WorkforceDB;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      - db
+
+  # 3. Frontend (React 19)
+  web:
+    build:
+      context: ./frontend/Workfroce
+      dockerfile: Dockerfile
+    container_name: workforce-web
+    ports:
+      - "3000:5173"  # Map Localhost:3000 -> Container:5173 (Vite)
+    volumes:
+      - ./frontend/Workfroce:/app           # Syncs your code changes instantly
+      - /app/node_modules                   # Prevents local node_modules conflicts
+    environment:
+      - VITE_API_URL=http://localhost:5001  # Points to Backend
+    depends_on:
+      - api
+
+volumes:
+  sql_data:
