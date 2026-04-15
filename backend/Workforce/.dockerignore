@@ -1,29 +1,66 @@
-**/.classpath
-**/.dockerignore
-**/.env
+# ── Source Control ─────────────────────────────────────────────
 **/.git
 **/.gitignore
-**/.project
-**/.settings
-**/.toolstarget
-**/.vs
-**/.vscode
+
+# ── .NET Build Artifacts (rebuilt inside container) ───────────
+**/bin
+**/obj
+**/TestResults
+**/coverage
+**/*.coverage
+**/*.coveragexml
+
+# ── Secrets & Environment ──────────────────────────────────────
+**/.env
+**/.env.*
+
+# Sensitive appsettings (injected via Docker environment vars)
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/appsettings.Local.json
+
+# ── Project User & Local Files ─────────────────────────────────
 **/*.*proj.user
 **/*.dbmdl
 **/*.jfm
-**/azds.yaml
-**/bin
-**/charts
+**/*.suo
+**/*.user
+
+# ── IDE & Editor ───────────────────────────────────────────────
+**/.vs
+**/.vscode
+**/.idea
+**/.classpath
+**/.project
+**/.settings
+**/.toolstarget
+
+# ── Docker Files (not needed inside the image) ─────────────────
 **/docker-compose*
 **/Dockerfile*
-**/node_modules
-**/npm-debug.log
-**/obj
+**/.dockerignore
+
+# ── Kubernetes / Helm / Azure ──────────────────────────────────
+**/azds.yaml
+**/charts
 **/secrets.dev.yaml
 **/values.dev.yaml
+
+# ── Docs & Repo Files ──────────────────────────────────────────
 LICENSE
 README.md
-!**/.gitignore
+**/*.md
+
+# ── OS Junk ────────────────────────────────────────────────────
+**/.DS_Store
+**/Thumbs.db
+**/Desktop.ini
+
+# ── Logs ───────────────────────────────────────────────────────
+**/*.log
+**/logs
+
+# ── Keep these git refs (required for BuildKit layer caching) ──
 !.git/HEAD
 !.git/config
 !.git/packed-refs

@@ -1,46 +1,174 @@
+# ==============================================================
+#  Workforce Time Management – Production-like Compose
+#  Usage: docker compose --env-file .env up -d --build
+#
+#  YAML Best Practices applied:
+#  - No hardcoded secrets  → all values via .env
+#  - Consistent indentation → 2 spaces throughout
+#  - Quoted strings        → all values in "key: value" form
+#  - Boolean values        → unquoted true/false, never "Y"/"N" strings
+#  - Maps over sequences   → environment as map not list (key: val not - key=val)
+#  - Explicit types        → ports, intervals all clearly typed
+#  - Comments              → explain WHY, not WHAT
+# ==============================================================
+
+name: workforce
+
 services:
-  # 1. SQL Server 2022 (Database)
+
+  # ────────────────────────────────────────────────────────────
+  # 1. SQL Server 2022
+  # ────────────────────────────────────────────────────────────
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: workforce-db
+    restart: unless-stopped
     environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrong!Passw0rd
+      ACCEPT_EULA: "Y"                  # map syntax (not list with - KEY=VAL)
+      SA_PASSWORD: ${SA_PASSWORD}        # never hardcode — pulled from .env
+      MSSQL_DB: ${DB_NAME}
     ports:
-      - "1433:1433"
+      - "1433:1433"                      # quoted to prevent YAML int parsing bugs
     volumes:
       - sql_data:/var/opt/mssql
+    networks:
+      - backend-net                      # isolated — frontend cannot reach DB directly
+    healthcheck:
+      test:
+        - "CMD"
+        - "/opt/mssql-tools18/bin/sqlcmd"  # mssql-tools18 is correct path for 2022 image
+        - "-S"
+        - "localhost"
+        - "-U"
+        - "sa"
+        - "-P"
+        - "${SA_PASSWORD}"
+        - "-Q"
+        - "SELECT 1"
+        - "-b"                           # exit non-zero on SQL error
+        - "-l"
+        - "5"                            # login timeout in seconds
+      interval: "15s"
+      timeout: "10s"
+      retries: 8
+      start_period: "45s"                # SQL Server is slow to cold-start
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "1.5"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # 2. Backend API (ASP.NET 10)
+  # ────────────────────────────────────────────────────────────
+  # 2. ASP.NET 10 Backend API
+  # ────────────────────────────────────────────────────────────
   api:
     build:
-      # point context to the project folder to ensure Workforce.csproj is available
       context: ./backend/Workforce
       dockerfile: Dockerfile
+      target: final                      # explicitly target the prod stage
     container_name: workforce-api
+    restart: unless-stopped
     ports:
-      - "5001:8080"  # Localhost:5001 -> Container:8080
+      - "5218:8080"                      # host:container — always quote ports
     environment:
-      - ConnectionStrings__DefaultConnection=Server=db;Database=WorkforceDB;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=True;
-      - ASPNETCORE_ENVIRONMENT=Development
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ASPNETCORE_URLS: "http://+:8080"
+      # Connection string uses variable substitution — no hardcoded credentials
+      ConnectionStrings__DefaultConnection: >-
+        Server=db;
+        Database=${DB_NAME};
+        User Id=sa;
+        Password=${SA_PASSWORD};
+        TrustServerCertificate=True;
+        Connect Timeout=30;
+        Application Name=WorkforceAPI;
     depends_on:
-      - db
+      db:
+        condition: service_healthy       # waits for DB healthcheck to pass, not just start
+    networks:
+      - backend-net                      # can reach DB
+      - frontend-net                     # can be reached by web
+    healthcheck:
+      test:
+        - "CMD"
+        - "curl"
+        - "-f"
+        - "http://localhost:8080/health" # requires a /health endpoint in your API
+      interval: "20s"
+      timeout: "10s"
+      retries: 5
+      start_period: "30s"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "1.0"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # 3. Frontend (React 19)
+  # ────────────────────────────────────────────────────────────
+  # 3. React 19 Frontend — Nginx static server
+  #    NOT the Vite dev server — built once, served as static files
+  #    For local dev with hot-reload, use docker-compose.override.yml
+  # ────────────────────────────────────────────────────────────
   web:
     build:
-      context: ./frontend/Workfroce
+      context: ./frontend/Workforce      # fixed typo: Workfroce → Workforce
       dockerfile: Dockerfile
+      target: final                      # nginx stage in multi-stage Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}    # baked into static bundle at build time
     container_name: workforce-web
+    restart: unless-stopped
     ports:
-      - "3000:5173"  # Map Localhost:3000 -> Container:5173 (Vite)
-    volumes:
-      - ./frontend/Workfroce:/app           # Syncs your code changes instantly
-      - /app/node_modules                   # Prevents local node_modules conflicts
-    environment:
-      - VITE_API_URL=http://localhost:5001  # Points to Backend
+      - "5173:80"                        # nginx listens on 80 inside container
     depends_on:
-      - api
+      api:
+        condition: service_healthy       # don't start until API is healthy
+    networks:
+      - frontend-net                     # can only reach API, never DB directly
+    healthcheck:
+      test:
+        - "CMD"
+        - "curl"
+        - "-f"
+        - "http://localhost:80"
+      interval: "20s"
+      timeout: "5s"
+      retries: 3
+      start_period: "10s"
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: "0.5"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+# ──────────────────────────────────────────────────────────────
+# Networks — principle of least privilege
+# DB is only reachable by API. Frontend only reaches API.
+# ──────────────────────────────────────────────────────────────
+networks:
+  backend-net:
+    driver: bridge
+  frontend-net:
+    driver: bridge
+
+# ──────────────────────────────────────────────────────────────
+# Volumes — named volume persists DB data across container restarts
+# ──────────────────────────────────────────────────────────────
 volumes:
   sql_data:
+    driver: local
