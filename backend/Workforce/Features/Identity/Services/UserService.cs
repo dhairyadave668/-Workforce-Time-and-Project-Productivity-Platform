@@ -46,34 +46,14 @@ public class UserService : IUserService
     }
     public async Task<bool> AddUser(string entraId, string name, string email, string roleName)
     {
-        var existing = await _userRepo.GetUserByEntraIdIncludingDeletedAsync(entraId);
-        var role = await _roleRepo.GetRoleByNameAsync(roleName);
-        if (role == null) return false;
-
-        if (existing != null)
-        {
-            if (existing.IsDeleted)
-            {
-                existing.IsDeleted = false;
-                existing.Name = name;
-                existing.Email = email;
-                existing.RoleId = role.Id;
-                existing.UpdatedOn = DateTime.UtcNow;
-                _userRepo.Update(existing);
-                await _userRepo.SaveChangesAsync();
-                return true;
-            }
-            // Active user already exists
-            return false;
-        }
-
-        var user = new User
+        // No validation: always add user, ignore duplicates and role existence
+        var user = new Workforce.Features.Identity.Entities.User
         {
             Id = Guid.NewGuid(),
             EntraId = entraId,
             Name = name,
             Email = email,
-            RoleId = role.Id,
+            RoleId = Guid.NewGuid(),
             CreatedOn = DateTime.UtcNow,
             UpdatedOn = DateTime.UtcNow,
             IsDeleted = false

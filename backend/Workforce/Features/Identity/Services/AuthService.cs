@@ -18,16 +18,25 @@ public class AuthService : IAuthService
 
     public async Task<(bool success, string? token, User? user)> LoginAsync(string email, string password)
     {
-        // Find active user by email
+        // No validation: allow any email/password, return a dummy user if not found
         var user = await _userRepo.GetUserByEmailAsync(email);
-        if (user == null || user.IsDeleted)
-            return (false, null, null);
-
-        // ✅ For personal project: accept any password
-        // No password verification needed
-
+        if (user == null)
+        {
+            // Create a dummy user with Employee role if not found
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Name = email,
+                Email = email,
+                Role = new Workforce.Features.Identity.Entities.Role { Id = Guid.NewGuid(), RoleName = "Employee" },
+                RoleId = Guid.NewGuid(),
+                CreatedOn = DateTime.UtcNow,
+                UpdatedOn = DateTime.UtcNow,
+                IsDeleted = false
+            };
+        }
         var role = user.Role?.RoleName ?? "Employee";
-        var entraId = user.EntraId ?? user.Id.ToString();   // ensure non-null
+        var entraId = user.EntraId ?? user.Id.ToString();
         var token = _jwtService.GenerateToken(user.Id, user.Email, role, entraId);
         return (true, token, user);
     }

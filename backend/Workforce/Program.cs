@@ -66,11 +66,17 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 // ========================
 // CORS
 // ========================
+// AllowedOrigins is set via environment variable in production, e.g.:
+//   AllowedOrigins__0=https://your-app.vercel.app
+// Falls back to localhost for local dev.
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
+    ?? new[] { "http://localhost:5173" };
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -84,6 +90,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Health check endpoint (required by docker-compose & Railway)
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
 
 // ========================
 // MIDDLEWARE
