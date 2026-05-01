@@ -157,7 +157,7 @@ export function ProjectCard({ project, users, onEdit, onDelete, onClick, canEdit
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                   e.stopPropagation();
                   onDelete(project.id);
                 }}
@@ -171,7 +171,7 @@ export function ProjectCard({ project, users, onEdit, onDelete, onClick, canEdit
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                   e.stopPropagation();
                   onEdit(project);
                 }}

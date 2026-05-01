@@ -443,7 +443,7 @@ export function ProjectFormDialog({
                   <Input
                     type="date"
                     value={form.startDate}
-                    onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, startDate: e.target.value })}
                     onClick={handleDateClick}
                     data-testid="project-start-input"
                   />
@@ -454,7 +454,7 @@ export function ProjectFormDialog({
                   <Input
                     type="date"
                     value={form.endDate}
-                    onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, endDate: e.target.value })}
                     onClick={handleDateClick}
                     data-testid="project-end-input"
                   />
@@ -471,7 +471,7 @@ export function ProjectFormDialog({
                     min="0"
                     placeholder="120"
                     value={form.plannedHours}
-                    onChange={(e) => {
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       const val = e.target.value;
                       if (val === "" || (Number(val) >= 0 && !isNaN(Number(val)))) {
                         setForm({ ...form, plannedHours: val });
@@ -502,7 +502,7 @@ export function ProjectFormDialog({
                   <Input
                     placeholder="Brief description..."
                     value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, description: e.target.value })}
                     data-testid="project-desc-input"
                   />
                 </div>
@@ -582,7 +582,7 @@ export function ProjectFormDialog({
                                   placeholder="Hrs"
                                   disabled={!isSelected}
                                   value={isSelected ? allocatedHours ?? "" : ""}
-                                  onChange={(e) => {
+                                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                     const value = e.target.value;
                                     if (value === "") {
                                       updateMemberHours(user.id, null);
@@ -674,7 +674,7 @@ export function ProjectFormDialog({
                       placeholder="Search tasks..."
                       className="pl-8 h-8 text-sm"
                       value={taskSearchTerm}
-                      onChange={(e) => setTaskSearchTerm(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTaskSearchTerm(e.target.value)}
                     />
                   </div>
                   <div className="w-full sm:w-40">
