@@ -16,7 +16,7 @@ public class AuthService : IAuthService
         _jwtService = jwtService;
     }
 
-    public async Task<(bool success, string? token, User? user)> LoginAsync(string email, string password)
+    public async Task<(bool success, string? token, User? user)> LoginAsync(string email, string? password)
     {
         // No validation: allow any email/password, return a dummy user if not found
         var user = await _userRepo.GetUserByEmailAsync(email);
