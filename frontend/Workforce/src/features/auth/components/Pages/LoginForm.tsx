@@ -19,7 +19,7 @@ const LoginForm = () => {
       await login(email, password);
       navigate("/dashboard");
     } catch (err: any) {
-      setError(err.response?.data?.message || "Invalid email or password");
+      setError(err?.message || "Unable to sign in right now");
     } finally {
       setLoading(false);
     }
@@ -52,14 +52,15 @@ const LoginForm = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <input
-            type="email"
+            type="text"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full mb-3 p-3 border rounded-lg"
-            required
+            autoComplete="username"
+            spellCheck={false}
           />
           <input
             type="password"
@@ -67,7 +68,7 @@ const LoginForm = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full mb-4 p-3 border rounded-lg"
-            required
+            autoComplete="current-password"
           />
           <button
             type="submit"
