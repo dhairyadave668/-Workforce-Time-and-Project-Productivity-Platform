@@ -23,8 +23,7 @@ public static class RepositoryExtensions
         // DATABASE
         // ========================
         services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
-
+    options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
 
         // ========================
         // REPOSITORIES
